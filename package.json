@@ -1,0 +1,25 @@
+{
+  "name": "web-scraper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "scrape:espn": "node scrape-espn.js",
+    "scrape:server": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "playwright": "^1.61.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-tooltip": "^6.0.8",
+    "vite": "^8.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.3"
+  }
+}

@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Oswald:wght@200..700&display=swap");
+
+.card-container {
+  width: 50vw;
+  height: fit-content;
+  margin: 15vh auto 0 auto;
+  text-align: center;
+  padding: 20px;
+  border-radius: 10px;
+  background: rgb(231, 231, 231);
+  box-shadow: 6px 8px 12px #9d9c9c;
+}
+
+@media (max-width: 1280px) {
+  .card-container {
+    width: 85vw;
+  }
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  font-family: Arial, sans-serif;
+}
+
+.scrape-button-wc-logo {
+  display: flex;
+  justify-content: space-between;
+  height: 80px;
+}
+
+.scrape-button {
+  width: fit-content;
+  font-weight: 700;
+  font-size: 14px;
+  max-height: 35px;
+  margin-top: 25px;
+  padding: 10px 30px 18px 30px;
+  border: none;
+  border-radius: 8px;
+  background: #1f1f1f;
+  color: #fefefe;
+  cursor: pointer;
+}
+
+.scrape-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.running-loading-circle {
+  display: flex;
+}
+
+.status-text {
+  margin: 0;
+  font-weight: 600;
+}
+
+.output-box {
+  max-height: 280px;
+  max-width: 90vw;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: #1f1f1f;
+  color: #f9fafb;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: start;
+}
+
+.repo-link {
+  display: flex;
+  height: 40vh;
+  justify-content: center;
+  align-items: center;
+}
+
+#gh-repo-link {
+  background-color: #1f1f1f;
+}
+
+.git-icon {
+  max-width: 50px;
+  max-height: 50px;
+}
+
+.tooltip-text {
+  font-family: "Arial", sans-serif;
+  font-weight: 500;
+}
+
+/* .scrape-img {
+  height: 50px;
+  width: 80px;
+} */
+
+
+
+/* <--- scrape loading circle ---> */
+
+
+
+.loader {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: 50%;
+
+  top: 20%;
+}
+
+.circular {
+ animation: rotate 2s linear infinite;
+ height: 100px;
+ width: 100px;
+}
+
+
+.path {
+  stroke-dasharray: 1,200;
+  stroke-dashoffset: 0;
+  animation:
+   dash 1.5s ease-in-out infinite,
+   color 6s ease-in-out infinite
+  ;
+  stroke-linecap: round;
+}
+
+@keyframes rotate{
+ 100% {
+  transform: rotate(360deg);
+ }
+}
+@keyframes dash{
+ 0% {
+  stroke-dasharray: 1,200;
+  stroke-dashoffset: 0;
+ }
+ 50% {
+  stroke-dasharray: 89,200;
+  stroke-dashoffset: -35;
+ }
+ 100% {
+  stroke-dasharray: 89,200;
+  stroke-dashoffset: -124;
+ }
+}
+@keyframes color{
+  100%, 0% {
+    stroke: #fefefe;
+  }
+  40% {
+    stroke: #fefefe;
+  }
+  66% {
+    stroke: #fefefe;
+  }
+  80%, 90% {
+    stroke: #fefefe;
+  }
+}
+ 
