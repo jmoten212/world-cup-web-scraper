@@ -59,6 +59,10 @@
   font-weight: 600;
 }
 
+.backend-text {
+  font-size: 12px;
+}
+
 .output-box {
   max-height: 280px;
   max-width: 90vw;
