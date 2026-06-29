@@ -7,13 +7,18 @@ function App() {
   const [status, setStatus] = useState('Idle');
   const [output, setOutput] = useState('');
 
+  const wcLogoUrl = `${import.meta.env.BASE_URL}images/2026_wc_logo.webp`;
+  const gitLogoUrl = `${import.meta.env.BASE_URL}images/git_icon.png`;
+  const scrapeApiBaseUrl = import.meta.env.VITE_SCRAPE_API_URL ||
+    (import.meta.env.PROD ? 'https://world-cup-web-scraper-1.onrender.com' : 'http://localhost:3001');
+
   async function runScraper() {
     setIsRunning(true);
     setStatus('Running scraper...');
     setOutput('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/scrape-espn', {
+      const response = await fetch(`${scrapeApiBaseUrl}/api/scrape-espn`, {
         method: 'POST',
       });
       const data = await response.json();
@@ -50,7 +55,7 @@ function App() {
               </div> */}
         
             </button>
-            <img src="/images/2026_wc_logo.webp" alt="FIFA World Cup 2026 logo" />
+            <img src={wcLogoUrl} alt="FIFA World Cup 2026 logo" />
           </div>
           <p className="status-text">{status}</p>
           <pre className="output-box">{output}</pre>
@@ -59,7 +64,7 @@ function App() {
 
       <div className="repo-link">
         <a href="https://github.com/jmoten212/world-cup-web-scraper" data-tooltip-id="gh-repo-link" data-tooltip-place="right"> 
-          <img src="https://www.svgrepo.com/show/303548/git-icon-logo.svg" alt="Git icon" className="git-icon"/>
+          <img src="{gitLogoUrl}" alt="Git icon" className="git-icon"/>
         </a>
       </div>
       <Tooltip id="gh-repo-link">
