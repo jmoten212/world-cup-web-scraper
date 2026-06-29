@@ -4,21 +4,43 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3001;
 const ROOT_DIR = path.resolve(__dirname);
+const ALLOWED_ORIGINS = [
+  'https://jmoten212.github.io',
+  'http://localhost:5173',
+  'http://localhost:3001',
+];
 
-function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, {
+function getCorsOrigin(origin) {
+  if (!origin) return '*';
+  return ALLOWED_ORIGINS.includes(origin) ? origin : null;
+}
+
+function sendJson(res, statusCode, payload, origin) {
+  const headers = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-  });
+  };
+  res.writeHead(statusCode, headers);
   res.end(JSON.stringify(payload));
 }
 
 const server = http.createServer((req, res) => {
+  const requestOrigin = req.headers.origin;
+  const corsOrigin = getCorsOrigin(requestOrigin);
+
   if (req.method === 'OPTIONS') {
+    if (!corsOrigin) {
+      res.writeHead(403, {
+        'Content-Type': 'text/plain',
+      });
+      res.end('CORS origin denied');
+      return;
+    }
+
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     });
@@ -27,6 +49,11 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url === '/api/scrape-espn' && req.method === 'POST') {
+    if (!corsOrigin) {
+      sendJson(res, 403, { ok: false, error: 'CORS origin denied' }, '*');
+      return;
+    }
+
     const child = spawn('npm', ['run', 'scrape:espn'], {
       cwd: ROOT_DIR,
       shell: true,
@@ -50,7 +77,7 @@ const server = http.createServer((req, res) => {
         exitCode: code,
         stdout,
         stderr,
-      });
+      }, corsOrigin);
     });
 
     return;
