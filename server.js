@@ -1,8 +1,8 @@
 const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
-const { execSync } = require('child_process');
 const fs = require('fs');
+const { chromium } = require('playwright');
 
 const PORT = process.env.PORT || 3001;
 const ROOT_DIR = path.resolve(__dirname);
@@ -12,28 +12,17 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3001',
 ];
 
-// ensure Playwright is installed on startup
-function ensurePlaywrightInstalled() {
-  const chromeDir = path.join(
-    process.env.HOME || '/root',
-    '.cache/ms-playwright/chromium_headless_shell-1228'
-  );
-
-  if (fs.existsSync(chromeDir)) {
-    console.log('✓ Playwright Chromium is installed');
-    return;
-  }
-
-  console.log('Installing Playwright Chromium browsers...');
+function getPlaywrightStatus() {
   try {
-    execSync('npx playwright install chromium', {
-      stdio: 'inherit',
-      env: { ...process.env },
-    });
-    console.log('✓ Playwright Chromium installed successfully');
+    const executablePath = chromium.executablePath();
+    const installed = Boolean(executablePath) && fs.existsSync(executablePath);
+    return { installed, executablePath };
   } catch (error) {
-    console.error('✗ Failed to install Playwright:', error.message);
-    process.exit(1);
+    return {
+      installed: false,
+      executablePath: null,
+      error: error.message,
+    };
   }
 }
 
@@ -81,6 +70,22 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    const playwrightStatus = getPlaywrightStatus();
+    if (!playwrightStatus.installed) {
+      sendJson(
+        res,
+        503,
+        {
+          ok: false,
+          error: 'Playwright Chromium is not installed on this server. Run `npx playwright install chromium` during build.',
+          executablePath: playwrightStatus.executablePath,
+          details: playwrightStatus.error || null,
+        },
+        corsOrigin
+      );
+      return;
+    }
+
     const child = spawn('npm', ['run', 'scrape:espn'], {
       cwd: ROOT_DIR,
       shell: true,
@@ -111,7 +116,15 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.url === '/health') {
-    sendJson(res, 200, { ok: true, service: 'scrape-server' });
+    const playwrightStatus = getPlaywrightStatus();
+    sendJson(res, 200, {
+      ok: true,
+      service: 'scrape-server',
+      playwright: {
+        installed: playwrightStatus.installed,
+        executablePath: playwrightStatus.executablePath,
+      },
+    });
     return;
   }
 
