@@ -64,7 +64,7 @@ function App() {
 
       <div className="repo-link">
         <a href="https://github.com/jmoten212/world-cup-web-scraper" data-tooltip-id="gh-repo-link" data-tooltip-place="right"> 
-          <img src="{gitLogoUrl}" alt="Git icon" className="git-icon"/>
+          <img src={gitLogoUrl} alt="Git icon" className="git-icon"/>
         </a>
       </div>
       <Tooltip id="gh-repo-link">
