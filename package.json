@@ -8,12 +8,18 @@
     "preview": "vite preview",
     "postinstall": "playwright install chromium",
     "scrape:espn": "node scrape-espn.js",
-    "scrape:server": "node server.js"
+    "store:espn": "node store-stats.js",
+    "scrape:server": "node server.js",
+    "api:smoke": "bash scripts/smoke-api.sh"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "pg": "^8.22.0",
     "playwright": "^1.61.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

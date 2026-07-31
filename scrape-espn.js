@@ -29,12 +29,22 @@ async function scrapeEspn() {
     })
   );
 
-  console.log(JSON.stringify({ page: PAGE_URL, tables }, null, 2));
+  const result = { page: PAGE_URL, tables };
 
   await browser.close();
+
+  return result;
 }
 
-scrapeEspn().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+module.exports = { scrapeEspn };
+
+if (require.main === module) {
+  scrapeEspn()
+    .then((data) => {
+      console.log(JSON.stringify(data, null, 2));
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+}
