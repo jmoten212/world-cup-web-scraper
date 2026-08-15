@@ -2,7 +2,11 @@ const { chromium } = require('playwright');
 
 const PAGE_URL = 'https://www.espn.com/soccer/stats/_/league/fifa.world';
 
-async function scrapeEspn() {
+type ESPNRow = Record<string, string>;
+type ESPNTable = { headers: string[]; rows: ESPNRow[] };
+type ScrapeEspnResult = { page: string; tables: ESPNTable[] };
+
+async function scrapeEspn(): Promise<ScrapeEspnResult> {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     userAgent:
@@ -15,13 +19,14 @@ async function scrapeEspn() {
   await page.waitForSelector('table.Table tbody tr', { timeout: 120000 });
   await page.waitForTimeout(3000);
 
-  const tables = await page.$$eval('table.Table', (tables) =>
-    tables.map((table) => {
-      const headers = Array.from(table.querySelectorAll('thead th')).map((th) => th.innerText.trim());
-      const rows = Array.from(table.querySelectorAll('tbody tr')).map((tr) => {
-        const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim());
-        return headers.reduce((acc, header, index) => {
-          acc[header] = cells[index] ?? '';
+  const tables: ESPNTable[] = await page.$$eval('table.Table', (tables: Element[]): ESPNTable[] =>
+    tables.map((table: Element): ESPNTable => {
+      const headerCells = Array.from(table.querySelectorAll('thead th')) as HTMLElement[];
+      const headers = headerCells.map((th: HTMLElement) => th.innerText.trim());
+      const rows = Array.from(table.querySelectorAll('tbody tr')).map((tr: Element) => {
+        const cells = Array.from(tr.querySelectorAll('td')) as HTMLElement[];
+        return headers.reduce((acc: ESPNRow, header: string, index: number): ESPNRow => {
+          acc[header] = cells[index]?.innerText.trim() ?? '';
           return acc;
         }, {});
       });
@@ -43,7 +48,7 @@ if (require.main === module) {
     .then((data) => {
       console.log(JSON.stringify(data, null, 2));
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error(error);
       process.exit(1);
     });
