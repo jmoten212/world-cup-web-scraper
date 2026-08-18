@@ -2,19 +2,28 @@ const { pool } = require('./db');
 const crypto = require('crypto');
 const { scrapeEspn } = require('./scrape-espn');
 
-function toInt(value) {
+type ESPNRow = Record<string, unknown>;
+type ESPNTable = { headers: string[]; rows: ESPNRow[] };
+
+function toInt(value: string | number | null | undefined): number | null {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const parsed = Number.parseInt(String(value).replace(/[^\d-]/g, ''), 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function toNullableText(value) {
+function toNullableText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text === '' ? null : text;
 }
 
-async function ensureTable(client) {
+function toScalar(value: unknown): string | number | null | undefined {
+  if (value === null || value === undefined) return value as null | undefined;
+  if (typeof value === 'string' || typeof value === 'number') return value as string | number;
+  return String(value);
+}
+
+async function ensureTable(client: import('pg').PoolClient): Promise<void> {
   await client.query(`
     CREATE TABLE IF NOT EXISTS espn_player_stats (
       id SERIAL PRIMARY KEY,
@@ -34,7 +43,7 @@ async function ensureTable(client) {
   await client.query('CREATE UNIQUE INDEX IF NOT EXISTS espn_player_stats_source_key_uniq ON espn_player_stats (source_key)');
 }
 
-function buildSourceKey(row, rowIndex) {
+function buildSourceKey(row: ESPNRow, rowIndex: number): string {
   const player = toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player) || '';
   const team = toNullableText(row.Team || row.TEAM || row.CLUB || row.Club || row.team) || '';
   const normalizedPlayer = player.toLowerCase();
@@ -49,7 +58,7 @@ function buildSourceKey(row, rowIndex) {
   return `row-${rowIndex}-${digest}`;
 }
 
-function mergeTables(tables) {
+function mergeTables(tables: ESPNTable[]): ESPNRow[] {
   if (!Array.isArray(tables) || tables.length < 2) {
     throw new Error('Expected at least two ESPN tables (names and stats).');
   }
@@ -61,9 +70,9 @@ function mergeTables(tables) {
   }));
 }
 
-async function storeStats(options = {}) {
+async function storeStats(options: { closePool?: boolean } = {}): Promise<{ rowsScraped: number; rowsUpserted: number; table: string }> {
   const { closePool = false } = options;
-  const { tables } = await scrapeEspn();
+  const { tables }: { tables: ESPNTable[] } = await scrapeEspn();
   const mergedRows = mergeTables(tables);
   let upsertedCount = 0;
 
@@ -76,8 +85,8 @@ async function storeStats(options = {}) {
       const rank = toNullableText(row.RK || row.Rank || row.rank);
       const player = toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player);
       const team = toNullableText(row.Team || row.TEAM || row.CLUB || row.Club || row.team);
-      const goals = toInt(row.G || row.Goals);
-      const assists = toInt(row.A || row.Assists);
+      const goals = toInt(toScalar(row.G ?? row.Goals));
+      const assists = toInt(toScalar(row.A ?? row.Assists));
       const sourceKey = buildSourceKey(row, index);
 
       await client.query(
