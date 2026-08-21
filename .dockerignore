@@ -1,0 +1,23 @@
+node_modules
+dist
+.git
+.gitignore
+.vscode
+coverage
+*.log
+.env
+.env.*
+npm-debug.log*
+tests
+.DS_Store
+
+# Terraform and deployment artifacts are not needed for application image builds.
+infrastructure
+.terraform
+*.tfstate
+*.tfstate.*
+crash.log
+
+# CI/editor/docs files
+.github
+README.md

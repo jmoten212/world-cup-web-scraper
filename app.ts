@@ -33,11 +33,11 @@ type PlaywrightStatus = {
 };
 
 function getDefaultPool(): Queryable {
-  return require('./db.ts').pool;
+  return require('./db').pool;
 }
 
 function getDefaultStoreStats(): StoreStatsFn {
-  return require('./store-stats.ts').storeStats;
+  return require('./store-stats').storeStats;
 }
 
 const DEFAULT_ALLOWED_ORIGINS = [
