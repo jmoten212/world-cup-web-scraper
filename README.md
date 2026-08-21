@@ -110,6 +110,64 @@ curl -X POST http://localhost:3001/api/scrape-espn</code></pre>
   <li><code>npm run api:smoke</code> - run smoke tests from the <code>smoke-api.sh</code> script</li>
 </ul>
 
+<h2>Terraform ECR</h2>
+
+<p>The <code>infrastructure/</code> folder now provisions an AWS ECR repository for the Docker image defined in the project <code>Dockerfile</code>.</p>
+
+<h3>Variables</h3>
+<ul>
+  <li><code>aws_region</code> - AWS region for the repository, default <code>us-east-1</code></li>
+  <li><code>aws_profile</code> - optional AWS CLI profile name, default empty</li>
+  <li><code>project_name</code> - project tag and default repository prefix, default <code>world-cup-web-scraper</code></li>
+  <li><code>environment</code> - environment suffix for naming, default <code>prod</code></li>
+  <li><code>repository_name</code> - optional explicit ECR repository name</li>
+  <li><code>image_tag_mutability</code> - <code>MUTABLE</code> or <code>IMMUTABLE</code></li>
+  <li><code>scan_on_push</code> - enable ECR scan on push, default <code>true</code></li>
+  <li><code>force_delete</code> - allow deletion of a non-empty repository, default <code>false</code></li>
+</ul>
+
+<h3>Apply</h3>
+<pre><code>cd infrastructure
+terraform init
+terraform apply -var="aws_profile=YOUR_PROFILE"
+</code></pre>
+
+<p>Terraform outputs <code>ecr_repository_url</code>, which you can use to push the container image.</p>
+
+<h3>Build And Push</h3>
+<pre><code>aws ecr get-login-password --region us-east-1 --profile YOUR_PROFILE | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+docker build -t world-cup-web-scraper .
+docker tag world-cup-web-scraper:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/world-cup-web-scraper-prod:latest
+docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/world-cup-web-scraper-prod:latest
+</code></pre>
+
+<h2>Terraform ECS (Fargate)</h2>
+
+<p>The same Terraform stack also provisions ECS Fargate resources for the image in ECR:</p>
+<ul>
+  <li>ECS cluster, task definition, and service</li>
+  <li>Application Load Balancer with HTTP listener</li>
+  <li>CloudWatch log group for container logs</li>
+  <li>IAM task execution role</li>
+</ul>
+
+<h3>Apply ECS</h3>
+<pre><code>cd infrastructure
+terraform apply -var="container_image_tag=latest"
+</code></pre>
+
+<p>By default, Terraform uses the default VPC and all its subnets. You can override this by setting <code>vpc_id</code> and <code>subnet_ids</code>.</p>
+
+<p>The ECS task runtime platform is explicitly set in Terraform. Defaults are <code>ecs_runtime_cpu_architecture=X86_64</code> and <code>ecs_runtime_os_family=LINUX</code>.</p>
+
+<h3>ECS Outputs</h3>
+<ul>
+  <li><code>app_url</code> - public URL for the ALB</li>
+  <li><code>alb_dns_name</code> - ALB DNS name</li>
+  <li><code>ecs_cluster_name</code> - ECS cluster name</li>
+  <li><code>ecs_service_name</code> - ECS service name</li>
+</ul>
+
 <h3>Contact</h3>
 <b>Name:</b> James Moten <br>
 <b>Email:</b> jmoten212@gmail.com <br>

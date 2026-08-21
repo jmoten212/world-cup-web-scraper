@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["app.ts", "db.ts", "scrape-espn.ts", "server.ts", "store-stats.ts"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
