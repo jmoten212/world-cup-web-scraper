@@ -5,6 +5,9 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["app.ts", "db.ts", "scrape-espn.ts", "server.ts", "store-stats.ts"],
+  "include": [
+    "apps/api/src/*.ts",
+    "packages/scraper/src/*.ts"
+  ],
   "exclude": ["node_modules", "dist", "tests"]
 }
