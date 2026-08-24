@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Express } from 'express';
-import * as appModule from '../../app';
+import * as appModule from '../../apps/api/src/app';
 
 type QueryResultRow = Record<string, unknown>;
 type Queryable = {

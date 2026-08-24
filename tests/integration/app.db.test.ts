@@ -3,7 +3,7 @@ import request from 'supertest';
 import { Pool } from 'pg';
 import type { Express } from 'express';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import * as appModule from '../../app';
+import * as appModule from '../../apps/api/src/app';
 
 dotenv.config({ path: '.env.test' });
 
