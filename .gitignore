@@ -2,6 +2,11 @@
 .env.test
 **/node_modules/
 
+# Terraform generated cache
+**/.terraform/
+**/.terraform.lock.hcl
+
+# Build output
 dist/
 
 **/**/.DS_Store
