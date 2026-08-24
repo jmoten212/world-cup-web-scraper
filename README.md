@@ -29,11 +29,65 @@ Created a web scraper with Playwright that uses React in the frontend and a Node
 
 <h3>Future Improvements</h3>
 <ul>
-  <li>Add unit and integration tests</li>
+  <li>Add more unit and integration tests</li>
   <li>Add more ESPN pages to scrape from to get more stat data</li>
   <li>Add more to design and UI to make the UX a bit more polished</li>
   <li>Improve accessibility</li>
 </ul>
+
+<h3>Project Structure</h3>
+
+```text
+web-scraper/
+├── Dockerfile
+├── README.md
+├── package.json
+├── setup.js
+├── tsconfig.json
+├── tsconfig.server.json
+├── apps/
+│   ├── api/
+│   │   └── src/
+│   │       ├── app.ts
+│   │       ├── db.ts
+│   │       ├── server.ts
+│   │       ├── store-stats.ts
+│   │       └── db/
+│   └── web/
+│       ├── index.html
+│       ├── vite.config.js
+│       ├── public/
+│       │   └── images/
+│       └── src/
+│           ├── App.jsx
+│           ├── main.css
+│           ├── main.jsx
+│           └── components/
+│               └── ScrapeStart.jsx
+├── infrastructure/
+│   ├── ecr.tf
+│   ├── ecs.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   ├── terraform.tf
+│   ├── terraform.tfstate
+│   ├── terraform.tfstate.backup
+│   └── variables.tf
+├── packages/
+│   └── scraper/
+│       └── src/
+│           ├── db.ts
+│           ├── scrape-espn.ts
+│           ├── store-stats.ts
+│           └── providers/
+├── scripts/
+│   └── smoke-api.sh
+└── tests/
+    ├── api/
+    │   └── server.test.ts
+    └── integration/
+        └── app.db.test.ts
+```
 
 <h2>REST API</h2>
 
