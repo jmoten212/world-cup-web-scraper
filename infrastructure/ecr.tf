@@ -3,6 +3,8 @@ locals {
 }
 
 resource "aws_ecr_repository" "app" {
+  #checkov:skip=CKV_AWS_136:Default AES-256 encryption is sufficient; KMS CMK adds cost and complexity for this project
+  #checkov:skip=CKV_AWS_51:Tag mutability is intentionally configurable via var.image_tag_mutability
   name                 = local.ecr_repository_name
   image_tag_mutability = var.image_tag_mutability
   force_delete         = var.force_delete

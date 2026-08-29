@@ -20,6 +20,8 @@ data "aws_subnets" "selected" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {
+  #checkov:skip=CKV_AWS_338:Retention period is intentionally configurable via var.ecs_log_retention_days
+  #checkov:skip=CKV_AWS_158:Default encryption is sufficient; KMS CMK adds cost and complexity for this project
   name              = "/ecs/${local.ecs_name_prefix}"
   retention_in_days = var.ecs_log_retention_days
 }
@@ -46,7 +48,26 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role" "ecs_task" {
+  name = "${local.ecs_name_prefix}-ecs-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
 resource "aws_security_group" "alb" {
+  #checkov:skip=CKV_AWS_260:ALB is intentionally public-facing on port 80
+  #checkov:skip=CKV_AWS_382:Unrestricted outbound is required for ALB health checks and routing
   name        = "${local.ecs_name_prefix}-alb"
   description = "ALB security group"
   vpc_id      = local.ecs_vpc_id
@@ -69,6 +90,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "ecs_service" {
+  #checkov:skip=CKV_AWS_382:Unrestricted outbound required for ECS tasks to reach ECR, CloudWatch, and RDS
   name        = "${local.ecs_name_prefix}-ecs-service"
   description = "ECS service security group"
   vpc_id      = local.ecs_vpc_id
@@ -91,11 +113,14 @@ resource "aws_security_group" "ecs_service" {
 }
 
 resource "aws_lb" "app" {
-  name               = substr("${local.ecs_name_prefix}-alb", 0, 32)
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = local.ecs_subnet_ids
+  #checkov:skip=CKV_AWS_150:Deletion protection disabled intentionally to allow terraform destroy
+  #checkov:skip=CKV_AWS_91:ALB access logging requires a dedicated S3 bucket; not warranted for this project
+  name                       = substr("${local.ecs_name_prefix}-alb", 0, 32)
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = local.ecs_subnet_ids
+  drop_invalid_header_fields = true
 }
 
 resource "aws_lb_target_group" "app" {
@@ -118,6 +143,7 @@ resource "aws_lb_target_group" "app" {
 }
 
 resource "aws_lb_listener" "http" {
+  #checkov:skip=CKV_AWS_2:HTTPS requires an ACM certificate and domain; HTTP is acceptable for this project
   load_balancer_arn = aws_lb.app.arn
   port              = 80
   protocol          = "HTTP"
@@ -129,6 +155,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_ecs_cluster" "app" {
+  #checkov:skip=CKV_AWS_65:Container insights adds CloudWatch cost; not required for this project
   name = "${local.ecs_name_prefix}-cluster"
 }
 
@@ -139,7 +166,7 @@ resource "aws_ecs_task_definition" "app" {
   cpu                      = tostring(var.ecs_task_cpu)
   memory                   = tostring(var.ecs_task_memory)
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   runtime_platform {
     cpu_architecture        = var.ecs_runtime_cpu_architecture
@@ -177,6 +204,7 @@ resource "aws_ecs_task_definition" "app" {
 }
 
 resource "aws_ecs_service" "app" {
+  #checkov:skip=CKV_AWS_333:Public IP assignment is controlled by var.assign_public_ip; required when using default VPC without NAT gateway
   name            = "${local.ecs_name_prefix}-service"
   cluster         = aws_ecs_cluster.app.id
   task_definition = aws_ecs_task_definition.app.arn
