@@ -54,6 +54,7 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: infrastructure/
+          version: 3.3.10
           framework: terraform
           quiet: true
           soft_fail: false
