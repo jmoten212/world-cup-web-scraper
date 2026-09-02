@@ -143,6 +143,23 @@ variable "health_check_path" {
   default     = "/health"
 }
 
+variable "acm_certificate_arn" {
+  description = "ACM certificate ARN used by the public ALB HTTPS listener."
+  type        = string
+}
+
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone ID for the custom domain. Leave null to skip DNS wiring."
+  type        = string
+  default     = null
+}
+
+variable "route53_record_name" {
+  description = "Fully qualified domain name to point at the ALB, such as app.example.com. Leave null to skip DNS wiring."
+  type        = string
+  default     = null
+}
+
 variable "assign_public_ip" {
   description = "Whether ECS tasks should get public IP addresses."
   type        = bool
@@ -150,7 +167,7 @@ variable "assign_public_ip" {
 }
 
 variable "alb_ingress_cidr_blocks" {
-  description = "CIDR blocks allowed to access the public ALB on HTTP."
+  description = "CIDR blocks allowed to access the public ALB on HTTPS."
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }

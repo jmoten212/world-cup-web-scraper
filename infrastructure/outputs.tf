@@ -39,6 +39,11 @@ output "alb_dns_name" {
 }
 
 output "app_url" {
-  description = "Public HTTP URL for the ECS service."
-  value       = "http://${aws_lb.app.dns_name}"
+  description = "Public HTTPS URL for the ECS service."
+  value       = "https://${aws_lb.app.dns_name}"
+}
+
+output "custom_domain_url" {
+  description = "Public HTTPS URL for the custom Route 53 domain, when configured."
+  value       = var.route53_record_name != null && var.route53_record_name != "" ? "https://${var.route53_record_name}" : null
 }

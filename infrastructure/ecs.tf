@@ -66,16 +66,16 @@ resource "aws_iam_role" "ecs_task" {
 }
 
 resource "aws_security_group" "alb" {
-  #checkov:skip=CKV_AWS_260:ALB is intentionally public-facing on port 80
+  #checkov:skip=CKV_AWS_260:ALB is intentionally public-facing on HTTPS only
   #checkov:skip=CKV_AWS_382:Unrestricted outbound is required for ALB health checks and routing
   name        = "${local.ecs_name_prefix}-alb"
   description = "ALB security group"
   vpc_id      = local.ecs_vpc_id
 
   ingress {
-    description = "Allow HTTP"
-    from_port   = 80
-    to_port     = 80
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = var.alb_ingress_cidr_blocks
   }
@@ -115,6 +115,7 @@ resource "aws_security_group" "ecs_service" {
 resource "aws_lb" "app" {
   #checkov:skip=CKV_AWS_150:Deletion protection disabled intentionally to allow terraform destroy
   #checkov:skip=CKV_AWS_91:ALB access logging requires a dedicated S3 bucket; not warranted for this project
+  #checkov:skip=CKV2_AWS_28:WAF is not part of this project's current infrastructure scope
   name                       = substr("${local.ecs_name_prefix}-alb", 0, 32)
   internal                   = false
   load_balancer_type         = "application"
@@ -124,6 +125,7 @@ resource "aws_lb" "app" {
 }
 
 resource "aws_lb_target_group" "app" {
+  #checkov:skip=CKV_AWS_378:This app does not terminate TLS; ALB-to-service traffic remains HTTP by design
   name        = substr("${local.ecs_name_prefix}-tg", 0, 32)
   port        = var.app_port
   protocol    = "HTTP"
@@ -142,11 +144,12 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-resource "aws_lb_listener" "http" {
-  #checkov:skip=CKV_AWS_2:HTTPS requires an ACM certificate and domain; HTTP is acceptable for this project
+resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.app.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn
 
   default_action {
     type             = "forward"
@@ -223,5 +226,5 @@ resource "aws_ecs_service" "app" {
     container_port   = var.app_port
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [aws_lb_listener.https]
 }
