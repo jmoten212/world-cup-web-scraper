@@ -2,7 +2,6 @@
 
 Created a web scraper with Playwright that uses React in the frontend and a Node server in the backend to scrape the stats for the leading scorers and assisters at the 2026 FIFA World Cup. It scrapes the data from the tables found at https://www.espn.com/soccer/stats/_/league/fifa.world and uses the backend server running at https://world-cup-web-scraper-1.onrender.com for the live production version of the app. I also created a RESTful API to go along with it that takes the scraped data, stores it in PostgreSQL and can be fetched using a few different <code>GET</code> methods
 
-
 [View Project](https://jmoten212.github.io/world-cup-web-scraper/) &emsp; | &emsp; [View Code](https://github.com/jmoten212/world-cup-web-scraper)
 
 <h3>Key Features</h3>
@@ -110,14 +109,14 @@ web-scraper/
 
 <h3>Endpoint Reference</h3>
 
-| Method | Route | Purpose | Query Params |
-| --- | --- | --- | --- |
-| GET | <code>/health</code> | Service and Playwright status check | None |
-| GET | <code>/api/players</code> | List player summaries | <code>limit</code>, <code>offset</code>, <code>search</code> |
-| GET | <code>/api/stats</code> | List stat rows | <code>limit</code>, <code>offset</code>, <code>player</code>, <code>team</code> |
-| GET | <code>/api/players/:player</code> | Player summary + stats rows | <code>limit</code>, <code>offset</code> |
-| GET | <code>/api/players/:player/stats</code> | Alias for player detail route | <code>limit</code>, <code>offset</code> |
-| POST | <code>/api/scrape-espn</code> | Scrape ESPN and upsert into PostgreSQL | None |
+| Method | Route                                   | Purpose                                | Query Params                                                                    |
+| ------ | --------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
+| GET    | <code>/health</code>                    | Service and Playwright status check    | None                                                                            |
+| GET    | <code>/api/players</code>               | List player summaries                  | <code>limit</code>, <code>offset</code>, <code>search</code>                    |
+| GET    | <code>/api/stats</code>                 | List stat rows                         | <code>limit</code>, <code>offset</code>, <code>player</code>, <code>team</code> |
+| GET    | <code>/api/players/:player</code>       | Player summary + stats rows            | <code>limit</code>, <code>offset</code>                                         |
+| GET    | <code>/api/players/:player/stats</code> | Alias for player detail route          | <code>limit</code>, <code>offset</code>                                         |
+| POST   | <code>/api/scrape-espn</code>           | Scrape ESPN and upsert into PostgreSQL | None                                                                            |
 
 <ul>
   <li><code>limit</code> - number of players to return, default <code>50</code></li>

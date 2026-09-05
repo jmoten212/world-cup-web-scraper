@@ -11,7 +11,7 @@ const path = require('path');
 async function ensurePlaywrightInstalled() {
   const chromeDir = path.join(
     process.env.HOME || '/root',
-    '.cache/ms-playwright/chromium_headless_shell-1228'
+    '.cache/ms-playwright/chromium_headless_shell-1228',
   );
 
   // check if Chromium is already installed

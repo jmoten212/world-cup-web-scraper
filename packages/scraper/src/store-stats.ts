@@ -40,11 +40,14 @@ async function ensureTable(client: import('pg').PoolClient): Promise<void> {
 
   await client.query('ALTER TABLE espn_player_stats ADD COLUMN IF NOT EXISTS source_key TEXT');
   await client.query('ALTER TABLE espn_player_stats ADD COLUMN IF NOT EXISTS rank TEXT');
-  await client.query('CREATE UNIQUE INDEX IF NOT EXISTS espn_player_stats_source_key_uniq ON espn_player_stats (source_key)');
+  await client.query(
+    'CREATE UNIQUE INDEX IF NOT EXISTS espn_player_stats_source_key_uniq ON espn_player_stats (source_key)',
+  );
 }
 
 function buildSourceKey(row: ESPNRow, rowIndex: number): string {
-  const player = toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player) || '';
+  const player =
+    toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player) || '';
   const team = toNullableText(row.Team || row.TEAM || row.CLUB || row.Club || row.team) || '';
   const normalizedPlayer = player.toLowerCase();
   const normalizedTeam = team.toLowerCase();
@@ -70,7 +73,9 @@ function mergeTables(tables: ESPNTable[]): ESPNRow[] {
   }));
 }
 
-async function storeStats(options: { closePool?: boolean } = {}): Promise<{ rowsScraped: number; rowsUpserted: number; table: string }> {
+async function storeStats(
+  options: { closePool?: boolean } = {},
+): Promise<{ rowsScraped: number; rowsUpserted: number; table: string }> {
   const { closePool = false } = options;
   const { tables }: { tables: ESPNTable[] } = await scrapeEspn();
   const mergedRows = mergeTables(tables);
@@ -103,7 +108,7 @@ async function storeStats(options: { closePool?: boolean } = {}): Promise<{ rows
             raw = EXCLUDED.raw,
             scraped_at = NOW()
         `,
-        [sourceKey, rank, player, team, goals, assists, row]
+        [sourceKey, rank, player, team, goals, assists, row],
       );
 
       upsertedCount += 1;

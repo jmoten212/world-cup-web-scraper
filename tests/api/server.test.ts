@@ -90,8 +90,7 @@ describe('API server', () => {
   });
 
   it('returns validation errors for invalid limit', async () => {
-    const response = await request(app)
-      .get('/api/players?limit=0');
+    const response = await request(app).get('/api/players?limit=0');
 
     expect(response.status).toBe(400);
     expect(response.body.ok).toBe(false);
@@ -100,7 +99,11 @@ describe('API server', () => {
   });
 
   it('returns success for POST /api/scrape-espn when storeStats succeeds', async () => {
-    const mockStoreStats = async () => ({ rowsScraped: 3, rowsUpserted: 3, table: 'espn_player_stats' });
+    const mockStoreStats = async () => ({
+      rowsScraped: 3,
+      rowsUpserted: 3,
+      table: 'espn_player_stats',
+    });
     const successApp = createApp({
       pool: createFakePool(),
       storeStats: mockStoreStats,
@@ -113,7 +116,11 @@ describe('API server', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
-    expect(response.body.result).toEqual({ rowsScraped: 3, rowsUpserted: 3, table: 'espn_player_stats' });
+    expect(response.body.result).toEqual({
+      rowsScraped: 3,
+      rowsUpserted: 3,
+      table: 'espn_player_stats',
+    });
   });
 
   it('returns failure for POST /api/scrape-espn when storeStats throws', async () => {

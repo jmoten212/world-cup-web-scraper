@@ -99,7 +99,9 @@ async function createSchema(): Promise<void> {
     )
   `);
 
-  await pool.query('CREATE UNIQUE INDEX espn_player_stats_source_key_uniq ON espn_player_stats (source_key)');
+  await pool.query(
+    'CREATE UNIQUE INDEX espn_player_stats_source_key_uniq ON espn_player_stats (source_key)',
+  );
 }
 
 async function seedData(): Promise<void> {
@@ -126,7 +128,7 @@ async function seedData(): Promise<void> {
         row.goals,
         row.assists,
         row.raw,
-      ]
+      ],
     );
   }
 }

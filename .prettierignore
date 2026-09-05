@@ -1,0 +1,8 @@
+node_modules
+coverage
+dist
+apps/web/dist
+package-lock.json
+*.tfstate
+*.tfstate.*
+.terraform

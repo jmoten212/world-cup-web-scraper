@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
-import './main.css'
+import './main.css';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
@@ -9,7 +9,8 @@ function App() {
 
   const wcLogoUrl = `${import.meta.env.BASE_URL}images/2026_wc_logo.webp`;
   const gitLogoUrl = `${import.meta.env.BASE_URL}images/git_icon.png`;
-  const scrapeApiBaseUrl = import.meta.env.VITE_SCRAPE_API_URL ||
+  const scrapeApiBaseUrl =
+    import.meta.env.VITE_SCRAPE_API_URL ||
     (import.meta.env.PROD
       ? 'https://world-cup-web-scraper-1.onrender.com'
       : 'http://localhost:3001');
@@ -35,9 +36,11 @@ function App() {
         throw new Error(errorMessage);
       }
 
-      setStatus(data.exitCode === 0
-        ? 'Scraper finished successfully ✔️'
-        : 'Scraper exited with an error ❌');
+      setStatus(
+        data.exitCode === 0
+          ? 'Scraper finished successfully ✔️'
+          : 'Scraper exited with an error ❌',
+      );
       setOutput(data.stdout || data.stderr || JSON.stringify(data, null, 2));
     } catch (error) {
       setStatus('Scraper failed');
@@ -64,7 +67,13 @@ function App() {
       </div>
 
       <div className="repo-link">
-        <a href="https://github.com/jmoten212/world-cup-web-scraper" data-tooltip-id="gh-repo-link" data-tooltip-place="right" target="_blank">
+        <a
+          href="https://github.com/jmoten212/world-cup-web-scraper"
+          data-tooltip-id="gh-repo-link"
+          data-tooltip-place="right"
+          target="_blank"
+          rel="noreferrer noopener"
+        >
           <img src={gitLogoUrl} alt="Git icon" className="git-icon" />
         </a>
       </div>

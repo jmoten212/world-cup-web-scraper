@@ -31,7 +31,7 @@ async function scrapeEspn(): Promise<ScrapeEspnResult> {
         }, {});
       });
       return { headers, rows };
-    })
+    }),
   );
 
   const result = { page: PAGE_URL, tables };

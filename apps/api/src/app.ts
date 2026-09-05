@@ -12,7 +12,7 @@ type QueryResultRow = Record<string, unknown>;
 type Queryable = {
   query: <T extends QueryResultRow = QueryResultRow>(
     sql: string,
-    values?: readonly unknown[]
+    values?: readonly unknown[],
   ) => Promise<{ rows: T[] }>;
 };
 
@@ -327,7 +327,7 @@ function createApp(deps: CreateAppDeps = {}) {
           ORDER BY scraped_at DESC, id DESC
           LIMIT $${values.length - 1} OFFSET $${values.length}
         `,
-        values
+        values,
       );
 
       const countValues = values.slice(0, values.length - 2);
@@ -365,7 +365,7 @@ function createApp(deps: CreateAppDeps = {}) {
           ORDER BY last_scraped DESC
           LIMIT 1
         `,
-        [player]
+        [player],
       );
 
       const statsResult = await dbPool.query(
@@ -376,7 +376,7 @@ function createApp(deps: CreateAppDeps = {}) {
           ORDER BY scraped_at DESC, id DESC
           LIMIT $2 OFFSET $3
         `,
-        [player, limit, offset]
+        [player, limit, offset],
       );
 
       const summary = summaryResult.rows[0] || null;
@@ -403,7 +403,8 @@ function createApp(deps: CreateAppDeps = {}) {
     if (!playwrightStatus.installed) {
       res.status(503).json({
         ok: false,
-        error: 'Playwright Chromium is not installed on this server. Run `npx playwright install chromium` during build.',
+        error:
+          'Playwright Chromium is not installed on this server. Run `npx playwright install chromium` during build.',
         executablePath: playwrightStatus.executablePath,
         details: playwrightStatus.error || null,
       });

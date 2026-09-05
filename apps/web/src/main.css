@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Oswald:wght@200..700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Oswald:wght@200..700&display=swap');
 
 .card-container {
   width: 50vw;
@@ -93,7 +93,7 @@
 }
 
 .tooltip-text {
-  font-family: "Arial", sans-serif;
+  font-family: 'Arial', sans-serif;
   font-weight: 500;
 }
 
@@ -102,11 +102,7 @@
   width: 80px;
 } */
 
-
-
 /* <--- scrape loading circle ---> */
-
-
 
 .loader {
   position: absolute;
@@ -118,43 +114,42 @@
 }
 
 .circular {
- animation: rotate 2s linear infinite;
- height: 100px;
- width: 100px;
+  animation: rotate 2s linear infinite;
+  height: 100px;
+  width: 100px;
 }
 
-
 .path {
-  stroke-dasharray: 1,200;
+  stroke-dasharray: 1, 200;
   stroke-dashoffset: 0;
   animation:
-   dash 1.5s ease-in-out infinite,
-   color 6s ease-in-out infinite
-  ;
+    dash 1.5s ease-in-out infinite,
+    color 6s ease-in-out infinite;
   stroke-linecap: round;
 }
 
-@keyframes rotate{
- 100% {
-  transform: rotate(360deg);
- }
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
 }
-@keyframes dash{
- 0% {
-  stroke-dasharray: 1,200;
-  stroke-dashoffset: 0;
- }
- 50% {
-  stroke-dasharray: 89,200;
-  stroke-dashoffset: -35;
- }
- 100% {
-  stroke-dasharray: 89,200;
-  stroke-dashoffset: -124;
- }
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 89, 200;
+    stroke-dashoffset: -124;
+  }
 }
-@keyframes color{
-  100%, 0% {
+@keyframes color {
+  100%,
+  0% {
     stroke: #fefefe;
   }
   40% {
@@ -163,8 +158,8 @@
   66% {
     stroke: #fefefe;
   }
-  80%, 90% {
+  80%,
+  90% {
     stroke: #fefefe;
   }
 }
- 

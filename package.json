@@ -20,6 +20,10 @@
     "test:api": "vitest run tests/api",
     "test:integration": "vitest run tests/integration",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "scrape:espn": "tsx packages/scraper/src/scrape-espn.ts",
     "store:espn": "tsx packages/scraper/src/store-stats.ts",
     "scrape:server": "tsx apps/api/src/server.ts",
@@ -40,13 +44,21 @@
     "vite": "^8.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.21.0",
     "@types/supertest": "^7.2.1",
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "@typescript-eslint/parser": "^8.69.0",
     "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
     "supertest": "^7.2.2",
     "tsx": "^4.23.12",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.2",
     "vitest": "^4.1.10"
   }
 }
