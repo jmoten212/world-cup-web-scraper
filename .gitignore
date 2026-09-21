@@ -5,6 +5,8 @@
 # Terraform generated cache
 **/.terraform/
 **/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
 
 # Build output
 dist/

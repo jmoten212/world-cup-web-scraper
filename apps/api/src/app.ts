@@ -346,7 +346,14 @@ function createApp(deps: CreateAppDeps = {}) {
 
   async function getPlayerDetail(req: Request, res: Response): Promise<void> {
     try {
-      const player = decodeURIComponent(req.params.player).trim();
+      const playerParam = typeof req.params.player === 'string' ? req.params.player : '';
+      const player = decodeURIComponent(playerParam).trim();
+
+      if (!player) {
+        res.status(400).json({ ok: false, error: 'player parameter is required' });
+        return;
+      }
+
       const limit = parsePositiveInt(req.query.limit, 100);
       const offset = parsePositiveInt(req.query.offset, 0);
 
