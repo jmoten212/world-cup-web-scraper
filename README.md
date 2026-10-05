@@ -166,7 +166,7 @@ curl -X POST http://localhost:3001/api/scrape-espn</code></pre>
 
 <h2>Demo - API Response</h2>
 
- <video src="./apps/web/public/videos/api_demo_1.mov" autoplay loop muted playsinline width="100%"></video>
+<img width="1922" height="374" alt="api_demo_1" src="https://github.com/user-attachments/assets/e3497205-1577-4189-b5ac-8fbfbe9e2220" />
 <br>
 <br>
 
