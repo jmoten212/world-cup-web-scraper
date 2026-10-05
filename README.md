@@ -87,6 +87,7 @@ web-scraper/
     └── integration/
         └── app.db.test.ts
 ```
+<br>
 
 <h2>REST API</h2>
 
@@ -162,6 +163,12 @@ curl -X POST http://localhost:3001/api/scrape-espn</code></pre>
   <li><code>npm run scrape:espn</code> - print the scraped ESPN tables as JSON</li>
   <li><code>npm run api:smoke</code> - run smoke tests from the <code>smoke-api.sh</code> script</li>
 </ul>
+
+<h2>Demo - API Response</h2>
+
+ <video src="./apps/web/public/videos/api_demo_1.mov" autoplay loop muted playsinline width="100%"></video>
+<br>
+<br>
 
 <h2>Terraform ECR</h2>
 
