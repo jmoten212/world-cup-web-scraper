@@ -87,6 +87,7 @@ web-scraper/
     └── integration/
         └── app.db.test.ts
 ```
+
 <br>
 
 <h2>REST API</h2>
