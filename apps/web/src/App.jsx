@@ -37,7 +37,7 @@ function App() {
       }
 
       setStatus('Scraper finished successfully ✔️');
-      setOutput(JSON.stringify(data, null, 2));
+      setOutput(data.stdout || JSON.stringify(data, null, 2));
     } catch (error) {
       setStatus('Scraper failed');
       setOutput(error?.message || 'Unknown error');
