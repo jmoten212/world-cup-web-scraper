@@ -36,12 +36,8 @@ function App() {
         throw new Error(errorMessage);
       }
 
-      setStatus(
-        data.exitCode === 0
-          ? 'Scraper finished successfully ✔️'
-          : 'Scraper exited with an error ❌',
-      );
-      setOutput(data.stdout || data.stderr || JSON.stringify(data, null, 2));
+      setStatus('Scraper finished successfully ✔️');
+      setOutput(JSON.stringify(data, null, 2));
     } catch (error) {
       setStatus('Scraper failed');
       setOutput(error?.message || 'Unknown error');
