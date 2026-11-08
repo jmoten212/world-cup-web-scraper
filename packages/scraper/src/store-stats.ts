@@ -75,7 +75,7 @@ function mergeTables(tables: ESPNTable[]): ESPNRow[] {
 
 async function storeStats(
   options: { closePool?: boolean } = {},
-): Promise<{ rowsScraped: number; rowsUpserted: number; table: string }> {
+): Promise<{ rowsScraped: number; rowsUpserted: number; table: string; rows: ESPNRow[] }> {
   const { closePool = false } = options;
   const { tables }: { tables: ESPNTable[] } = await scrapeEspn();
   const mergedRows = mergeTables(tables);
@@ -119,6 +119,7 @@ async function storeStats(
       rowsScraped: mergedRows.length,
       rowsUpserted: upsertedCount,
       table: 'espn_player_stats',
+      rows: mergedRows,
     };
     console.log(`Upserted ${upsertedCount} rows into espn_player_stats.`);
     return summary;
