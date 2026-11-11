@@ -133,6 +133,31 @@ function App() {
     return () => controller.abort();
   }, [activeTab, scrapeApiBaseUrl, statsRefresh]);
 
+  function handlePaginationKeyDown(event) {
+    if (
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      statsLoading ||
+      statsError ||
+      !statsPagination ||
+      statsPagination.offset !== statsOffset
+    ) {
+      return;
+    }
+
+    const previous = event.key === 'ArrowLeft' && statsOffset > 0;
+    const next = event.key === 'ArrowRight' && stats.length > 0 && statsPagination.hasMore;
+    if (!previous && !next) return;
+
+    event.preventDefault();
+    event.currentTarget.focus();
+    setStatsOffset(
+      previous ? Math.max(0, statsOffset - STATS_PAGE_SIZE) : statsOffset + STATS_PAGE_SIZE,
+    );
+  }
+
   return (
     <>
       <div className="card-container">
@@ -166,6 +191,7 @@ function App() {
           aria-labelledby="response-tab"
           tabIndex={0}
           hidden={activeTab !== 'response'}
+          onKeyDown={handlePaginationKeyDown}
         >
           <h2>Player Stats</h2>
           <p className="last-scraped" aria-live="polite">
@@ -187,6 +213,7 @@ function App() {
                 <div className="stats-pagination">
                   <button
                     type="button"
+                    aria-keyshortcuts="ArrowLeft"
                     onClick={() =>
                       setStatsOffset((current) => Math.max(0, current - STATS_PAGE_SIZE))
                     }
@@ -227,6 +254,7 @@ function App() {
                 <div className="stats-pagination">
                   <button
                     type="button"
+                    aria-keyshortcuts="ArrowLeft"
                     disabled={statsOffset === 0}
                     onClick={() =>
                       setStatsOffset((current) => Math.max(0, current - STATS_PAGE_SIZE))
@@ -239,6 +267,7 @@ function App() {
                   </span>
                   <button
                     type="button"
+                    aria-keyshortcuts="ArrowRight"
                     disabled={!statsPagination.hasMore}
                     onClick={() => setStatsOffset((current) => current + STATS_PAGE_SIZE)}
                   >
