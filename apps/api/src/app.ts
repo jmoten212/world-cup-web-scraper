@@ -81,6 +81,49 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function redactLogMessage(message: string): string {
+  const databaseUrl = process.env.DATABASE_URL;
+  let redacted = databaseUrl ? message.split(databaseUrl).join('[redacted database URL]') : message;
+  redacted = redacted.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, '[redacted database URL]');
+
+  if (databaseUrl) {
+    try {
+      const password = new URL(databaseUrl).password;
+      if (password) {
+        redacted = redacted.split(password).join('[redacted]');
+        redacted = redacted.split(decodeURIComponent(password)).join('[redacted]');
+      }
+    } catch {
+      return '[unable to safely log error: invalid database URL or password encoding]';
+    }
+  }
+
+  return redacted;
+}
+
+function errorLogDetails(error: unknown, depth = 0): Record<string, unknown> {
+  if (depth >= 5) return { message: '[maximum error depth reached]' };
+  if (!(error instanceof Error)) return { message: redactLogMessage(String(error)) };
+
+  const details: Record<string, unknown> = {
+    name: redactLogMessage(error.name),
+    message: redactLogMessage(error.message),
+  };
+  const code = (error as Error & { code?: string }).code;
+  if (code) details.code = redactLogMessage(code);
+  if (error.cause !== undefined) details.cause = errorLogDetails(error.cause, depth + 1);
+  if (error instanceof AggregateError) {
+    details.errors = error.errors.map((nestedError: unknown) =>
+      errorLogDetails(nestedError, depth + 1),
+    );
+  }
+  return details;
+}
+
+function logServerError(route: string, error: unknown): void {
+  console.error(JSON.stringify({ route, error: errorLogDetails(error) }));
+}
+
 function handleValidationErrors(req: Request, res: Response, next: NextFunction): void | Response {
   const errors = validationResult(req);
   if (errors.isEmpty()) {
@@ -285,6 +328,7 @@ function createApp(deps: CreateAppDeps = {}) {
         pagination: buildPagination({ limit, offset, total }),
       });
     } catch (error: unknown) {
+      logServerError('GET /api/players', error);
       res.status(500).json({ ok: false, error: getErrorMessage(error) });
     }
   });
@@ -340,6 +384,7 @@ function createApp(deps: CreateAppDeps = {}) {
         pagination: buildPagination({ limit, offset, total }),
       });
     } catch (error: unknown) {
+      logServerError('GET /api/stats', error);
       res.status(500).json({ ok: false, error: getErrorMessage(error) });
     }
   });
@@ -398,6 +443,7 @@ function createApp(deps: CreateAppDeps = {}) {
         pagination: buildPagination({ limit, offset, total }),
       });
     } catch (error: unknown) {
+      logServerError('GET /api/players/:player', error);
       res.status(500).json({ ok: false, error: getErrorMessage(error) });
     }
   }
@@ -423,6 +469,7 @@ function createApp(deps: CreateAppDeps = {}) {
       const result = await storeStatsFn();
       res.json({ ok: true, result });
     } catch (error: unknown) {
+      logServerError('POST /api/scrape-espn', error);
       res.status(500).json({ ok: false, error: getErrorMessage(error) });
     }
   });

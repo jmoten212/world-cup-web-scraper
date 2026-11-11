@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Express } from 'express';
 import * as appModule from '../../apps/api/src/app';
 
@@ -57,6 +57,11 @@ describe('API server', () => {
       storeStats: async () => ({ rowsScraped: 1, rowsUpserted: 1, table: 'espn_player_stats' }),
       allowedOrigins: DEFAULT_ALLOWED_ORIGINS,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('returns health status', async () => {
@@ -126,6 +131,7 @@ describe('API server', () => {
   });
 
   it('returns failure for POST /api/scrape-espn when storeStats throws', async () => {
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const mockStoreStats = async () => {
       throw new Error('scrape failed');
     };
@@ -142,6 +148,52 @@ describe('API server', () => {
     expect(response.status).toBe(500);
     expect(response.body.ok).toBe(false);
     expect(response.body.error).toBe('scrape failed');
+    expect(JSON.parse(logError.mock.calls[0][0] as string)).toEqual({
+      route: 'POST /api/scrape-espn',
+      error: { name: 'Error', message: 'scrape failed' },
+    });
+  });
+
+  it.each([
+    ['/api/players?limit=1', 'GET /api/players'],
+    ['/api/stats?limit=1', 'GET /api/stats'],
+    ['/api/players/Example', 'GET /api/players/:player'],
+    ['/api/players/Example/stats', 'GET /api/players/:player'],
+  ])('logs nested database failures for %s', async (path, route) => {
+    vi.stubEnv('DATABASE_URL', 'postgres://user:pa%24ss@database:5432/example');
+    const logError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const connectionError = Object.assign(
+      new Error('connect ECONNREFUSED; password pa$ss; postgres://other:secret@db/example'),
+      { code: 'ECONNREFUSED' },
+    );
+    const databaseError = new AggregateError([connectionError], '');
+    const failureApp = createApp({
+      pool: {
+        query: async () => {
+          throw databaseError;
+        },
+      },
+      allowedOrigins: DEFAULT_ALLOWED_ORIGINS,
+    });
+
+    const response = await request(failureApp).get(path);
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ ok: false, error: '' });
+    expect(JSON.parse(logError.mock.calls[0][0] as string)).toEqual({
+      route,
+      error: {
+        name: 'AggregateError',
+        message: '',
+        errors: [
+          {
+            name: 'Error',
+            message: 'connect ECONNREFUSED; password [redacted]; [redacted database URL]',
+            code: 'ECONNREFUSED',
+          },
+        ],
+      },
+    });
   });
 
   it('returns 404 JSON for unknown routes', async () => {
