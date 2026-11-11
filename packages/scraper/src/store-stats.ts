@@ -61,21 +61,62 @@ function buildSourceKey(row: ESPNRow, rowIndex: number): string {
   return `row-${rowIndex}-${digest}`;
 }
 
-function mergeTables(tables: ESPNTable[]): ESPNRow[] {
-  if (!Array.isArray(tables) || tables.length < 2) {
-    throw new Error('Expected at least two ESPN tables (names and stats).');
+function playerKey(row: ESPNRow): string {
+  const name = toNullableText(row.NAME);
+  const team = toNullableText(row.TEAM);
+
+  if (!name || !team) {
+    throw new Error('A scraped row is missing its player name or team.');
   }
 
-  const [namesTable, statsTable] = tables;
-  return namesTable.rows.map((nameRow, index) => ({
-    ...nameRow,
-    ...(statsTable.rows[index] || {}),
-  }));
+  return JSON.stringify([name.toLowerCase(), team.toLowerCase()]);
+}
+
+function mergeTables(tables: ESPNTable[]): ESPNRow[] {
+  if (!Array.isArray(tables)) {
+    throw new Error('Expected ESPN goals and assists tables.');
+  }
+
+  const [goalsTable, assistsTable] = tables;
+
+  if (!goalsTable?.headers.includes('G') || !assistsTable?.headers.includes('A')) {
+    throw new Error('Expected ESPN goals and assists tables.');
+  }
+
+  const players = new Map<string, ESPNRow>();
+
+  for (const goalRow of goalsTable.rows) {
+    const key = playerKey(goalRow);
+
+    if (players.has(key)) {
+      throw new Error(`Duplicate player in goals table: ${key}`);
+    }
+
+    players.set(key, { ...goalRow });
+  }
+
+  const seenAssists = new Set<string>();
+
+  for (const assistsRow of assistsTable.rows) {
+    const key = playerKey(assistsRow);
+
+    if (seenAssists.has(key)) {
+      throw new Error(`Duplicate player in assists table: ${key}`);
+    }
+
+    seenAssists.add(key);
+    const existing = players.get(key);
+    const { ...assistsData } = assistsRow;
+
+    players.set(key, existing ? { ...existing, A: assistsRow.A } : { ...assistsData });
+  }
+
+  return Array.from(players.values());
 }
 
 async function storeStats(
   options: { closePool?: boolean } = {},
-): Promise<{ rowsScraped: number; rowsUpserted: number; table: string }> {
+): Promise<{ rowsScraped: number; rowsUpserted: number; table: string; rows: ESPNRow[] }> {
   const { closePool = false } = options;
   const { tables }: { tables: ESPNTable[] } = await scrapeEspn();
   const mergedRows = mergeTables(tables);
@@ -119,6 +160,7 @@ async function storeStats(
       rowsScraped: mergedRows.length,
       rowsUpserted: upsertedCount,
       table: 'espn_player_stats',
+      rows: mergedRows,
     };
     console.log(`Upserted ${upsertedCount} rows into espn_player_stats.`);
     return summary;
@@ -144,4 +186,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { storeStats };
+module.exports = { storeStats, mergeTables };

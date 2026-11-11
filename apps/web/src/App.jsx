@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
+import Tabs from './components/Tabs';
 import './main.css';
+
+const STATS_PAGE_SIZE = 25;
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [status, setStatus] = useState('Idle');
   const [output, setOutput] = useState('');
+  const [activeTab, setActiveTab] = useState('scraper');
+  const [stats, setStats] = useState([]);
+  const [statsPagination, setStatsPagination] = useState(null);
+  const [statsOffset, setStatsOffset] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState('');
+  const [statsRefresh, setStatsRefresh] = useState(0);
+  const [lastScraped, setLastScraped] = useState('Loading...');
 
   const wcLogoUrl = `${import.meta.env.BASE_URL}images/2026_wc_logo.webp`;
   const gitLogoUrl = `${import.meta.env.BASE_URL}images/git_icon.png`;
@@ -37,7 +48,9 @@ function App() {
       }
 
       setStatus('Scraper finished successfully ✔️');
-      setOutput(data.stdout || JSON.stringify(data, null, 2));
+      setOutput(JSON.stringify(data, null, 2));
+      setStatsOffset(0);
+      setStatsRefresh((current) => current + 1);
     } catch (error) {
       setStatus('Scraper failed');
       setOutput(error?.message || 'Unknown error');
@@ -46,10 +59,116 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    if (activeTab !== 'response') return undefined;
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({ limit: STATS_PAGE_SIZE, offset: statsOffset });
+
+    async function loadStats() {
+      setStatsLoading(true);
+      setStatsError('');
+
+      try {
+        const response = await fetch(`${scrapeApiBaseUrl}/api/stats?${params}`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.ok) {
+          throw new Error(data?.error || 'Failed to load stats');
+        }
+        if (!Array.isArray(data.data) || !data.pagination) {
+          throw new Error('Invalid stats response');
+        }
+
+        if (!controller.signal.aborted) {
+          setStats(data.data.map((row) => ({ ...row, gamesPlayed: row.raw?.P ?? null })));
+          setStatsPagination(data.pagination);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setStatsError(error?.message || 'Failed to load stats');
+        }
+      } finally {
+        if (!controller.signal.aborted) setStatsLoading(false);
+      }
+    }
+
+    loadStats();
+    return () => controller.abort();
+  }, [activeTab, scrapeApiBaseUrl, statsOffset, statsRefresh]);
+
+  useEffect(() => {
+    if (activeTab !== 'response') return undefined;
+
+    const controller = new AbortController();
+
+    async function loadLastScraped() {
+      setLastScraped('Loading...');
+
+      try {
+        const response = await fetch(`${scrapeApiBaseUrl}/api/stats?limit=1`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.ok || !Array.isArray(data.data)) {
+          throw new Error('Failed to load the latest scrape time');
+        }
+
+        const scrapedAt = data.data[0]?.scraped_at;
+        const date = scrapedAt ? new Date(scrapedAt) : null;
+        if (!controller.signal.aborted) {
+          setLastScraped(
+            date && !Number.isNaN(date.getTime()) ? date.toLocaleString() : 'Unavailable',
+          );
+        }
+      } catch {
+        if (!controller.signal.aborted) setLastScraped('Unavailable');
+      }
+    }
+
+    loadLastScraped();
+    return () => controller.abort();
+  }, [activeTab, scrapeApiBaseUrl, statsRefresh]);
+
+  function handlePaginationKeyDown(event) {
+    if (
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      statsLoading ||
+      statsError ||
+      !statsPagination ||
+      statsPagination.offset !== statsOffset
+    ) {
+      return;
+    }
+
+    const previous = event.key === 'ArrowLeft' && statsOffset > 0;
+    const next = event.key === 'ArrowRight' && stats.length > 0 && statsPagination.hasMore;
+    if (!previous && !next) return;
+
+    event.preventDefault();
+    event.currentTarget.focus();
+    setStatsOffset(
+      previous ? Math.max(0, statsOffset - STATS_PAGE_SIZE) : statsOffset + STATS_PAGE_SIZE,
+    );
+  }
+
   return (
     <>
       <div className="card-container">
-        <div className="app-shell">
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <div
+          className="app-shell tab-panel"
+          role="tabpanel"
+          id="scraper-panel"
+          aria-labelledby="scraper-tab"
+          hidden={activeTab !== 'scraper'}
+        >
           <div className="scrape-button-wc-logo">
             <button className="scrape-button" onClick={runScraper} disabled={isRunning}>
               {isRunning ? 'Running...' : 'Run Scraper'}
@@ -58,7 +177,106 @@ function App() {
           </div>
           <p className="status-text">{status}</p>
           <p className="backend-text">Using backend: {scrapeApiBaseUrl}</p>
-          <pre className="output-box">{output}</pre>
+          <pre className="output-box">
+            {output ||
+              (isRunning
+                ? 'Waiting for the scraper response...'
+                : 'Run the scraper to see its response.')}
+          </pre>
+        </div>
+        <div
+          className="response-panel tab-panel"
+          role="tabpanel"
+          id="response-panel"
+          aria-labelledby="response-tab"
+          tabIndex={0}
+          hidden={activeTab !== 'response'}
+          onKeyDown={handlePaginationKeyDown}
+        >
+          <h2>Player Stats</h2>
+          <p className="last-scraped" aria-live="polite">
+            (Last scraped at {lastScraped})
+          </p>
+          {statsLoading && <p role="status">Loading stats...</p>}
+          {statsError && (
+            <div role="alert">
+              <p>{statsError}</p>
+              <button type="button" onClick={() => setStatsRefresh((current) => current + 1)}>
+                Try again
+              </button>
+            </div>
+          )}
+          {!statsLoading && !statsError && stats.length === 0 && (
+            <>
+              <p>{statsOffset === 0 ? 'No stats available yet.' : 'No stats on this page.'}</p>
+              {statsOffset > 0 && (
+                <div className="stats-pagination">
+                  <button
+                    type="button"
+                    aria-keyshortcuts="ArrowLeft"
+                    onClick={() =>
+                      setStatsOffset((current) => Math.max(0, current - STATS_PAGE_SIZE))
+                    }
+                  >
+                    Previous
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          {!statsLoading && !statsError && stats.length > 0 && (
+            <>
+              <div className="stats-table-container">
+                <table className="stats-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Player</th>
+                      <th scope="col">Team</th>
+                      <th scope="col">Games Played</th>
+                      <th scope="col">Goals</th>
+                      <th scope="col">Assists</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.map((row) => (
+                      <tr key={row.id}>
+                        <td>{row.player || '-'}</td>
+                        <td>{row.team || '-'}</td>
+                        <td>{row.gamesPlayed ?? '-'}</td>
+                        <td>{row.goals ?? '-'}</td>
+                        <td>{row.assists ?? '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {statsPagination && (
+                <div className="stats-pagination">
+                  <button
+                    type="button"
+                    aria-keyshortcuts="ArrowLeft"
+                    disabled={statsOffset === 0}
+                    onClick={() =>
+                      setStatsOffset((current) => Math.max(0, current - STATS_PAGE_SIZE))
+                    }
+                  >
+                    Previous
+                  </button>
+                  <span className="pagination-btn-count">
+                    {statsOffset + 1}–{statsOffset + stats.length} of {statsPagination.total}
+                  </span>
+                  <button
+                    type="button"
+                    aria-keyshortcuts="ArrowRight"
+                    disabled={!statsPagination.hasMore}
+                    onClick={() => setStatsOffset((current) => current + STATS_PAGE_SIZE)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

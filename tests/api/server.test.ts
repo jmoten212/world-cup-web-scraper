@@ -100,9 +100,10 @@ describe('API server', () => {
 
   it('returns success for POST /api/scrape-espn when storeStats succeeds', async () => {
     const mockStoreStats = async () => ({
-      rowsScraped: 3,
-      rowsUpserted: 3,
+      rowsScraped: 1,
+      rowsUpserted: 1,
       table: 'espn_player_stats',
+      rows: [{ Name: 'Example Player', Team: 'Example Team', G: '4', A: '2' }],
     });
     const successApp = createApp({
       pool: createFakePool(),
@@ -117,9 +118,10 @@ describe('API server', () => {
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
     expect(response.body.result).toEqual({
-      rowsScraped: 3,
-      rowsUpserted: 3,
+      rowsScraped: 1,
+      rowsUpserted: 1,
       table: 'espn_player_stats',
+      rows: [{ Name: 'Example Player', Team: 'Example Team', G: '4', A: '2' }],
     });
   });
 

@@ -324,7 +324,7 @@ function createApp(deps: CreateAppDeps = {}) {
           SELECT id, scraped_at, source_key, player, team, goals, assists, raw
           FROM espn_player_stats
           ${whereClause}
-          ORDER BY scraped_at DESC, id DESC
+          ORDER BY goals DESC NULLS LAST, assists DESC NULLS LAST
           LIMIT $${values.length - 1} OFFSET $${values.length}
         `,
         values,
@@ -380,7 +380,7 @@ function createApp(deps: CreateAppDeps = {}) {
           SELECT id, scraped_at, source_key, player, team, goals, assists, raw
           FROM espn_player_stats
           WHERE player ILIKE $1
-          ORDER BY scraped_at DESC, id DESC
+          ORDER BY goals DESC NULLS LAST, assists DESC NULLS LAST
           LIMIT $2 OFFSET $3
         `,
         [player, limit, offset],
