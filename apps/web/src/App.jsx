@@ -83,7 +83,7 @@ function App() {
         }
 
         if (!controller.signal.aborted) {
-          setStats(data.data);
+          setStats(data.data.map((row) => ({ ...row, gamesPlayed: row.raw?.P ?? null })));
           setStatsPagination(data.pagination);
         }
       } catch (error) {
@@ -205,6 +205,7 @@ function App() {
                     <tr>
                       <th scope="col">Player</th>
                       <th scope="col">Team</th>
+                      <th scope="col">Games Played</th>
                       <th scope="col">Goals</th>
                       <th scope="col">Assists</th>
                     </tr>
@@ -212,10 +213,11 @@ function App() {
                   <tbody>
                     {stats.map((row) => (
                       <tr key={row.id}>
-                        <td>{row.player || '—'}</td>
-                        <td>{row.team || '—'}</td>
-                        <td>{row.goals ?? '—'}</td>
-                        <td>{row.assists ?? '—'}</td>
+                        <td>{row.player || '-'}</td>
+                        <td>{row.team || '-'}</td>
+                        <td>{row.gamesPlayed ?? '-'}</td>
+                        <td>{row.goals ?? '-'}</td>
+                        <td>{row.assists ?? '-'}</td>
                       </tr>
                     ))}
                   </tbody>
