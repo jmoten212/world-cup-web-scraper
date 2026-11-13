@@ -1,12 +1,10 @@
+import type { ESPNRow, ESPNTable } from './types';
+
 const { pool } = require('./db');
-const crypto = require('crypto');
 const { scrapeEspn } = require('./scrape-espn');
 
-type ESPNRow = Record<string, unknown>;
-type ESPNTable = { headers: string[]; rows: ESPNRow[] };
-
-function toInt(value: string | number | null | undefined): number | null {
-  if (typeof value !== 'string' && typeof value !== 'number') return null;
+function toInt(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
   const parsed = Number.parseInt(String(value).replace(/[^\d-]/g, ''), 10);
   return Number.isNaN(parsed) ? null : parsed;
 }
@@ -15,12 +13,6 @@ function toNullableText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text === '' ? null : text;
-}
-
-function toScalar(value: unknown): string | number | null | undefined {
-  if (value === null || value === undefined) return value as null | undefined;
-  if (typeof value === 'string' || typeof value === 'number') return value as string | number;
-  return String(value);
 }
 
 async function ensureTable(client: import('pg').PoolClient): Promise<void> {
@@ -45,20 +37,9 @@ async function ensureTable(client: import('pg').PoolClient): Promise<void> {
   );
 }
 
-function buildSourceKey(row: ESPNRow, rowIndex: number): string {
-  const player =
-    toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player) || '';
-  const team = toNullableText(row.Team || row.TEAM || row.CLUB || row.Club || row.team) || '';
-  const normalizedPlayer = player.toLowerCase();
-  const normalizedTeam = team.toLowerCase();
-
-  if (normalizedPlayer || normalizedTeam) {
-    return `${normalizedPlayer}|${normalizedTeam}`;
-  }
-
-  const fallback = JSON.stringify(row);
-  const digest = crypto.createHash('sha256').update(fallback).digest('hex').slice(0, 16);
-  return `row-${rowIndex}-${digest}`;
+// mergeTables guarantees every row has a NAME and TEAM, so this key is always non-empty
+function buildSourceKey(row: ESPNRow): string {
+  return `${row.NAME.trim().toLowerCase()}|${row.TEAM.trim().toLowerCase()}`;
 }
 
 function playerKey(row: ESPNRow): string {
@@ -72,43 +53,34 @@ function playerKey(row: ESPNRow): string {
   return JSON.stringify([name.toLowerCase(), team.toLowerCase()]);
 }
 
-function mergeTables(tables: ESPNTable[]): ESPNRow[] {
-  if (!Array.isArray(tables)) {
-    throw new Error('Expected ESPN goals and assists tables.');
+function indexByPlayer(rows: ESPNRow[], tableName: string): Map<string, ESPNRow> {
+  const index = new Map<string, ESPNRow>();
+
+  for (const row of rows) {
+    const key = playerKey(row);
+
+    if (index.has(key)) {
+      throw new Error(`Duplicate player in ${tableName} table: ${key}`);
+    }
+
+    index.set(key, row);
   }
 
-  const [goalsTable, assistsTable] = tables;
+  return index;
+}
+
+function mergeTables(tables: ESPNTable[]): ESPNRow[] {
+  const [goalsTable, assistsTable] = Array.isArray(tables) ? tables : [];
 
   if (!goalsTable?.headers.includes('G') || !assistsTable?.headers.includes('A')) {
     throw new Error('Expected ESPN goals and assists tables.');
   }
 
-  const players = new Map<string, ESPNRow>();
+  const players = indexByPlayer(goalsTable.rows, 'goals');
 
-  for (const goalRow of goalsTable.rows) {
-    const key = playerKey(goalRow);
-
-    if (players.has(key)) {
-      throw new Error(`Duplicate player in goals table: ${key}`);
-    }
-
-    players.set(key, { ...goalRow });
-  }
-
-  const seenAssists = new Set<string>();
-
-  for (const assistsRow of assistsTable.rows) {
-    const key = playerKey(assistsRow);
-
-    if (seenAssists.has(key)) {
-      throw new Error(`Duplicate player in assists table: ${key}`);
-    }
-
-    seenAssists.add(key);
+  for (const [key, assistsRow] of indexByPlayer(assistsTable.rows, 'assists')) {
     const existing = players.get(key);
-    const { ...assistsData } = assistsRow;
-
-    players.set(key, existing ? { ...existing, A: assistsRow.A } : { ...assistsData });
+    players.set(key, existing ? { ...existing, A: assistsRow.A } : assistsRow);
   }
 
   return Array.from(players.values());
@@ -120,20 +92,19 @@ async function storeStats(
   const { closePool = false } = options;
   const { tables }: { tables: ESPNTable[] } = await scrapeEspn();
   const mergedRows = mergeTables(tables);
-  let upsertedCount = 0;
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await ensureTable(client);
 
-    for (const [index, row] of mergedRows.entries()) {
+    for (const row of mergedRows) {
       const rank = toNullableText(row.RK || row.Rank || row.rank);
-      const player = toNullableText(row.Name || row.NAME || row.Player || row.PLAYER || row.player);
-      const team = toNullableText(row.Team || row.TEAM || row.CLUB || row.Club || row.team);
-      const goals = toInt(toScalar(row.G ?? row.Goals));
-      const assists = toInt(toScalar(row.A ?? row.Assists));
-      const sourceKey = buildSourceKey(row, index);
+      const player = toNullableText(row.NAME);
+      const team = toNullableText(row.TEAM);
+      const goals = toInt(row.G);
+      const assists = toInt(row.A);
+      const sourceKey = buildSourceKey(row);
 
       await client.query(
         `
@@ -151,19 +122,16 @@ async function storeStats(
         `,
         [sourceKey, rank, player, team, goals, assists, row],
       );
-
-      upsertedCount += 1;
     }
 
     await client.query('COMMIT');
-    const summary = {
+    console.log(`Upserted ${mergedRows.length} rows into espn_player_stats.`);
+    return {
       rowsScraped: mergedRows.length,
-      rowsUpserted: upsertedCount,
+      rowsUpserted: mergedRows.length,
       table: 'espn_player_stats',
       rows: mergedRows,
     };
-    console.log(`Upserted ${upsertedCount} rows into espn_player_stats.`);
-    return summary;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;

@@ -58,7 +58,7 @@ function getPlaywrightStatus(): PlaywrightStatus {
     return {
       installed: false,
       executablePath: null,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   }
 }
@@ -141,6 +141,18 @@ function handleValidationErrors(req: Request, res: Response, next: NextFunction)
   });
 }
 
+type Validation = Array<ValidationChain | RequestHandler>;
+
+function optionalTrimmedString(field: string, max: number): ValidationChain {
+  return query(field)
+    .optional()
+    .isString()
+    .withMessage(`${field} must be a string`)
+    .trim()
+    .isLength({ max })
+    .withMessage(`${field} must be ${max} characters or fewer`);
+}
+
 const paginationValidation: ValidationChain[] = [
   query('limit')
     .optional()
@@ -154,38 +166,20 @@ const paginationValidation: ValidationChain[] = [
     .toInt(),
 ];
 
-const playersQueryValidation: Array<ValidationChain | RequestHandler> = [
+const playersQueryValidation: Validation = [
   ...paginationValidation,
-  query('search')
-    .optional()
-    .isString()
-    .withMessage('search must be a string')
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('search must be 100 characters or fewer'),
+  optionalTrimmedString('search', 100),
   handleValidationErrors,
 ];
 
-const statsQueryValidation: Array<ValidationChain | RequestHandler> = [
+const statsQueryValidation: Validation = [
   ...paginationValidation,
-  query('player')
-    .optional()
-    .isString()
-    .withMessage('player must be a string')
-    .trim()
-    .isLength({ max: 120 })
-    .withMessage('player must be 120 characters or fewer'),
-  query('team')
-    .optional()
-    .isString()
-    .withMessage('team must be a string')
-    .trim()
-    .isLength({ max: 120 })
-    .withMessage('team must be 120 characters or fewer'),
+  optionalTrimmedString('player', 120),
+  optionalTrimmedString('team', 120),
   handleValidationErrors,
 ];
 
-const playerPathValidation: Array<ValidationChain | RequestHandler> = [
+const playerPathValidation: Validation = [
   param('player')
     .isString()
     .withMessage('player path parameter must be a string')
@@ -198,7 +192,7 @@ const playerPathValidation: Array<ValidationChain | RequestHandler> = [
   handleValidationErrors,
 ];
 
-const scrapeValidation: Array<ValidationChain | RequestHandler> = [
+const scrapeValidation: Validation = [
   body().custom((value: unknown) => {
     if (value && typeof value === 'object' && Object.keys(value).length > 0) {
       throw new Error('request body must be empty');
@@ -243,13 +237,13 @@ function createApp(deps: CreateAppDeps = {}) {
       return;
     }
 
+    setCorsHeaders(res, corsOrigin);
+
     if (req.method === 'OPTIONS') {
-      setCorsHeaders(res, corsOrigin);
       res.status(204).end();
       return;
     }
 
-    setCorsHeaders(res, corsOrigin);
     next();
   });
 
@@ -271,34 +265,30 @@ function createApp(deps: CreateAppDeps = {}) {
       const offset = parsePositiveInt(req.query.offset, 0);
       const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-      const values: Array<string | number> = [limit, offset];
+      const filterValues: string[] = [];
       let whereClause = "WHERE player IS NOT NULL AND player <> ''";
 
       if (search) {
-        values.unshift(`%${search}%`);
-        whereClause += ' AND player ILIKE $1';
+        filterValues.push(`%${search}%`);
+        whereClause += ` AND player ILIKE $${filterValues.length}`;
       }
 
-      const query = search
-        ? `
+      const values = [...filterValues, limit, offset];
+
+      const { rows } = await dbPool.query(
+        `
           SELECT player, team, MAX(scraped_at) AS last_scraped, COUNT(*)::int AS stat_rows
           FROM espn_player_stats
           ${whereClause}
           GROUP BY player, team
           ORDER BY player ASC
           LIMIT $${values.length - 1} OFFSET $${values.length}
-        `
-        : `
-          SELECT player, team, MAX(scraped_at) AS last_scraped, COUNT(*)::int AS stat_rows
-          FROM espn_player_stats
-          ${whereClause}
-          GROUP BY player, team
-          ORDER BY player ASC
-          LIMIT $1 OFFSET $2
-        `;
+        `,
+        values,
+      );
 
-      const countQuery = search
-        ? `
+      const countResult = await dbPool.query(
+        `
           SELECT COUNT(*)::int AS total
           FROM (
             SELECT player, team
@@ -306,20 +296,9 @@ function createApp(deps: CreateAppDeps = {}) {
             ${whereClause}
             GROUP BY player, team
           ) AS player_groups
-        `
-        : `
-          SELECT COUNT(*)::int AS total
-          FROM (
-            SELECT player, team
-            FROM espn_player_stats
-            ${whereClause}
-            GROUP BY player, team
-          ) AS player_groups
-        `;
-
-      const { rows } = await dbPool.query(query, values);
-      const countValues = search ? [`%${search}%`] : [];
-      const countResult = await dbPool.query(countQuery, countValues);
+        `,
+        filterValues,
+      );
       const total = parsePositiveInt(countResult.rows[0]?.total, 0);
 
       res.json({
@@ -341,27 +320,20 @@ function createApp(deps: CreateAppDeps = {}) {
       const team = typeof req.query.team === 'string' ? req.query.team.trim() : '';
 
       const filters: string[] = [];
-      const values: Array<string | number> = [];
+      const filterValues: string[] = [];
 
       if (player) {
-        values.push(player);
-        filters.push(`player ILIKE $${values.length}`);
+        filterValues.push(player);
+        filters.push(`player ILIKE $${filterValues.length}`);
       }
 
       if (team) {
-        values.push(team);
-        filters.push(`team ILIKE $${values.length}`);
+        filterValues.push(team);
+        filters.push(`team ILIKE $${filterValues.length}`);
       }
 
-      values.push(limit);
-      values.push(offset);
-
+      const values = [...filterValues, limit, offset];
       const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
-      const countQuery = `
-        SELECT COUNT(*)::int AS total
-        FROM espn_player_stats
-        ${whereClause}
-      `;
 
       const { rows } = await dbPool.query(
         `
@@ -374,8 +346,14 @@ function createApp(deps: CreateAppDeps = {}) {
         values,
       );
 
-      const countValues = values.slice(0, values.length - 2);
-      const countResult = await dbPool.query(countQuery, countValues);
+      const countResult = await dbPool.query(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM espn_player_stats
+          ${whereClause}
+        `,
+        filterValues,
+      );
       const total = parsePositiveInt(countResult.rows[0]?.total, 0);
 
       res.json({
@@ -391,13 +369,8 @@ function createApp(deps: CreateAppDeps = {}) {
 
   async function getPlayerDetail(req: Request, res: Response): Promise<void> {
     try {
-      const playerParam = typeof req.params.player === 'string' ? req.params.player : '';
-      const player = decodeURIComponent(playerParam).trim();
-
-      if (!player) {
-        res.status(400).json({ ok: false, error: 'player parameter is required' });
-        return;
-      }
+      // Express has already decoded the param; playerPathValidation guarantees it is non-empty
+      const player = String(req.params.player).trim();
 
       const limit = parsePositiveInt(req.query.limit, 100);
       const offset = parsePositiveInt(req.query.offset, 0);
