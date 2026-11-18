@@ -1,6 +1,5 @@
+import { chromium } from 'playwright';
 import type { ESPNTable } from './types';
-
-const { chromium } = require('playwright');
 
 const PAGE_URL = 'https://www.espn.com/soccer/stats/_/league/fifa.world';
 const USER_AGENT =
@@ -41,7 +40,7 @@ async function scrapeEspn(): Promise<ScrapeEspnResult> {
   }
 }
 
-module.exports = { scrapeEspn };
+export { scrapeEspn };
 
 if (require.main === module) {
   scrapeEspn()

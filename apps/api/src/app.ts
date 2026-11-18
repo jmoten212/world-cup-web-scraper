@@ -1,12 +1,11 @@
-require('dotenv').config();
+import 'dotenv/config';
 
+import express from 'express';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { query, param, body, validationResult } from 'express-validator';
 import type { ValidationError, ValidationChain } from 'express-validator';
-
-const express = require('express');
-const { query, param, body, validationResult } = require('express-validator');
-const fs = require('fs');
-const { chromium } = require('playwright');
+import fs from 'fs';
+import { chromium } from 'playwright';
 
 type QueryResultRow = Record<string, unknown>;
 type Queryable = {
@@ -454,7 +453,4 @@ function createApp(deps: CreateAppDeps = {}) {
   return app;
 }
 
-module.exports = {
-  createApp,
-  DEFAULT_ALLOWED_ORIGINS,
-};
+export { createApp, DEFAULT_ALLOWED_ORIGINS };

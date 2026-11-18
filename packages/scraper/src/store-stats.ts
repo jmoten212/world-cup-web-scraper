@@ -1,7 +1,7 @@
+import { scrapeEspn } from './scrape-espn';
 import type { ESPNRow, ESPNTable } from './types';
 
 const { pool } = require('./db');
-const { scrapeEspn } = require('./scrape-espn');
 
 function toInt(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -154,4 +154,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { storeStats, mergeTables };
+export { storeStats, mergeTables };
